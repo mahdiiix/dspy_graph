@@ -29,7 +29,7 @@ class Node:
         self._register_node(name, self)
 
     def __call__(self, *args, **kwargs):
-        return self.run(*args, **kwargs, program = self.llm_program)
+        return self.run(*args, **kwargs)
 
 def create_node(name: str, program: Optional[dspy.Module] = None):
     def decorator(fn: Callable[..., str]):
@@ -41,15 +41,13 @@ END = Node("END", lambda _: "END", freeze=True)
 if __name__ == "__main__":
     llm = dspy.Module()
     @create_node("test", llm)
-    def f(something: int, program: dspy.Module) -> int:
-       print(type(program))
-       return something
-    print(f(5))
+    def f(state, ctx, llm_program) -> int:
+       print(type(program), type(state), type(ctx))
+       return 'something'
     print(f.name)
 
     @create_node("asynctest", llm)
-    async def af(something: int, program: dspy.Module) -> int:
-        print(type(program))
+    async def af(something: int) -> int:
         return something
     import asyncio
     print(asyncio.run(af(5)))
