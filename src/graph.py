@@ -42,16 +42,15 @@ class Graph:
 
 
 class CompiledGraph(dspy.Module):
-    def __init__(self, graph: Graph, max_iterations: int = 100):
+    def __init__(self, graph: Graph):
         super().__init__()
         self.graph = graph
-        self.max_iterations = max_iterations
         self._register_modules()
 
     def _register_modules(self):
         if not self.graph.freeze:
             for node in self.graph.nodes:
-                if (not node.freeze) and isinstance(node.llm_program, dspy.Module):
+                if (not node.freeze) and (not node.llm_freeze) and isinstance(node.llm_program, dspy.Module):
                     setattr(self, node.name, node.llm_program)
 
     def forward(self):

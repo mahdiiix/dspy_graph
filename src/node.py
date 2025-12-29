@@ -21,11 +21,12 @@ class Node:
     def get_nodes(cls):
         yield from cls._registry.items()
 
-    def __init__(self, name: str, fn: Callable[..., str], program: Optional[dspy.Module] = None, freeze: bool = False):
+    def __init__(self, name: str, fn: Callable[..., str], program: Optional[dspy.Module] = None, freeze: bool = False, llm_freeze: bool = False):
         self.name = name
         self.llm_program = program
         self.run = fn
         self.freeze = freeze
+        self.llm_freeze = llm_freeze
         self._register_node(name, self)
 
     def __call__(self, *args, **kwargs):
