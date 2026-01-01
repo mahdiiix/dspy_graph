@@ -1,11 +1,19 @@
-import inspect
-from typing import Any, Dict, List, Optional
 import asyncio
+import inspect
 import threading
+from dataclasses import dataclass
+from typing import Any, ClassVar, Dict, List, Optional, Protocol, Union
 
 import dspy
+import pydantic
 
 from .node import END, Node
+
+
+class IsDataclass(Protocol):
+    # Checking for this attribute is currently the most reliable way
+    # to ascertain that something is a dataclass
+    __dataclass_fields__: ClassVar[Dict[str, Any]]
 
 
 class Graph:
@@ -14,8 +22,8 @@ class Graph:
         nodes: List[Node],
         max_iterations: int = -1,
         freeze: bool = False,
-        state: Optional[Dict[Any, Any]] = None,
-        context: Optional[Dict[Any, Any]] = None,
+        state: Dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
+        context: Dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
     ):
         self.nodes = nodes
         self.start_node: Node = nodes[0]
@@ -37,7 +45,7 @@ class Graph:
             current_node = Node.get_node(current_node(**bound.arguments))
             iterations += 1
 
-        if iterations >= self.max_iterations:
+        if 0 <= self.max_iterations <= iterations:
             raise RuntimeError(
                 f"Graph execution exceeded max iterations ({self.max_iterations})"
             )
