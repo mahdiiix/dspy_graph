@@ -1,5 +1,7 @@
-from typing import Optional, Union, Callable, Self
+from typing import Callable, Optional, Self
+
 import dspy
+
 
 class Node:
     _registry: dict[str, Self] = {}
@@ -21,7 +23,14 @@ class Node:
     def get_nodes(cls):
         yield from cls._registry.items()
 
-    def __init__(self, name: str, fn: Callable[..., str], program: Optional[dspy.Module] = None, freeze: bool = False, llm_freeze: bool = False):
+    def __init__(
+        self,
+        name: str,
+        fn: Callable[..., str],
+        program: Optional[dspy.Module] = None,
+        freeze: bool = False,
+        llm_freeze: bool = False,
+    ):
         self.name = name
         self.llm_program = program
         self.run = fn
@@ -32,23 +41,30 @@ class Node:
     def __call__(self, *args, **kwargs):
         return self.run(*args, **kwargs)
 
+
 def create_node(name: str, program: Optional[dspy.Module] = None):
     def decorator(fn: Callable[..., str]):
         return Node(name, fn, program)
+
     return decorator
+
 
 END = Node("END", lambda _: "END", freeze=True)
 
 if __name__ == "__main__":
     llm = dspy.Module()
+
     @create_node("test", llm)
-    def f(state, ctx, llm_program) -> int:
-       print(type(program), type(state), type(ctx))
-       return 'something'
+    def f(state, ctx, llm_program) -> str:
+        print(type(llm_program), type(state), type(ctx))
+        return "something"
+
     print(f.name)
 
     @create_node("asynctest", llm)
     async def af(something: int) -> int:
         return something
+
     import asyncio
+
     print(asyncio.run(af(5)))

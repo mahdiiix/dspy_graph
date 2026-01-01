@@ -13,3 +13,13 @@ dependencies = [
 dev = [
     "mypy>=1.19.1",
 ]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E501", "I"]
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 88

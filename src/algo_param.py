@@ -1,12 +1,17 @@
 import weakref
 from typing import Callable, Optional
 
-type MutationFunc[T] = Callable[[T], T]
 
 class AlgoParam[T]:
     _registry: weakref.WeakSet["AlgoParam"] = weakref.WeakSet()
 
-    def __init__(self, mutate: MutationFunc[T], value: T, name: Optional[str] = None, freeze: bool = False):
+    def __init__(
+        self,
+        mutate: Callable[[T], T],
+        value: T,
+        name: Optional[str] = None,
+        freeze: bool = False,
+    ):
         self.mutate = mutate
         self._value = value
         self.name = name
@@ -32,14 +37,21 @@ class AlgoParam[T]:
         return self.value
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(name={self.name}, value={self.value}, mutate_func={getattr(self.mutate, '__name__', None)})"
+        return f"{self.__class__.__name__}(name={self.name}, value={self.value}, \
+                mutate_func={getattr(self.mutate, '__name__', None)})"
+
 
 if __name__ == "__main__":
-    def ff(x): return x + 1
+
+    def ff(x):
+        return x + 1
+
     a = AlgoParam[int](ff, name="a", value=1)
     c = AlgoParam[int](lambda x: x * 2, value=2, name="c")
+
     def f():
-         AlgoParam[str](lambda x: x * 2, value="hello", name="b")
+        AlgoParam[str](lambda x: x * 2, value="hello", name="b")
+
     f()
 
     for item in AlgoParam.parameters():
