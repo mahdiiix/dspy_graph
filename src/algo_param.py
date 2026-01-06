@@ -3,24 +3,28 @@ from typing import Callable, Optional
 
 
 class AlgoParam[T]:
-    _registry: weakref.WeakSet["AlgoParam"] = weakref.WeakSet()
+    _registry: weakref.WeakValueDictionary[str, "AlgoParam"] = (
+        weakref.WeakValueDictionary()
+    )
 
     def __init__(
         self,
-        mutate: Callable[[T], T],
-        value: T,
-        name: Optional[str] = None,
+        name: str,
+        value: Optional[T] = None,
         freeze: bool = False,
     ):
-        self.mutate = mutate
         self._value = value
         self.name = name
         self.freeze = freeze
-        AlgoParam._registry.add(self)
+        AlgoParam._registry[name] = self
 
     @classmethod
     def parameters(cls):
         yield from cls._registry
+
+    @classmethod
+    def parameter(cls, name: str):
+        return cls._registry[name]
 
     @property
     def value(self):
@@ -31,14 +35,8 @@ class AlgoParam[T]:
         if not self.freeze:
             self._value = value
 
-    @property
-    def next_value(self):
-        self.value = self.mutate(self.value)
-        return self.value
-
     def __repr__(self):
-        return f"{self.__class__.__name__}(name={self.name}, value={self.value}, \
-                mutate_func={getattr(self.mutate, '__name__', None)})"
+        return f"{self.__class__.__name__}(name={self.name}, value={self.value})"
 
 
 if __name__ == "__main__":
@@ -46,11 +44,11 @@ if __name__ == "__main__":
     def ff(x):
         return x + 1
 
-    a = AlgoParam[int](ff, name="a", value=1)
-    c = AlgoParam[int](lambda x: x * 2, value=2, name="c")
+    a = AlgoParam[int](name="a", value=1)
+    c = AlgoParam[int](value=2, name="c")
 
     def f():
-        AlgoParam[str](lambda x: x * 2, value="hello", name="b")
+        AlgoParam[str](value="hello", name="b")
 
     f()
 
