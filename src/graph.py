@@ -2,6 +2,7 @@ import asyncio
 import inspect
 import threading
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Protocol, Union
 
 import dspy
@@ -68,6 +69,15 @@ class Graph:
         if "tlock" in sig.parameters:
             bound = sig.bind_partial(**bound.arguments, tlock=self.tlock)
         return sig.bind(**bound.arguments)
+
+    def save(self, path: Path):
+        pass
+
+    def load(self, path: Path):
+        pass
+
+    def visualize(self):
+        pass
 
 
 class CompiledDspy(dspy.Module):
