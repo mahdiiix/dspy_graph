@@ -20,7 +20,7 @@ class AlgoParam[T]:
 
     @classmethod
     def parameters(cls):
-        yield from cls._registry
+        yield from cls._registry.items()
 
     @classmethod
     def parameter(cls, name: str):
