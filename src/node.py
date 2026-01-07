@@ -22,7 +22,7 @@ class Node:
 
     @classmethod
     def get_nodes(cls):
-        yield from cls._registry.items()
+        return cls._registry
 
     def __init__(
         self,
@@ -46,11 +46,11 @@ class Node:
 def create_node(
     name: str,
     program: Optional[dspy.Module] = None,
-    freeze: Optional[bool] = None,
-    llm_freeze: Optional[bool] = None,
+    freeze: bool = False,
+    llm_freeze: bool = False,
 ):
     def decorator(fn: Callable[..., str]):
-        return Node(name, fn, program)
+        return Node(name, fn, program, freeze, llm_freeze)
 
     return decorator
 
