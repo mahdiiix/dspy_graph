@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "A graph-based workflow framework for DSPy with visualization and optimization support"
 readme = "README.md"
 requires-python = ">=3.13"
-license = "LICENSE"
+license = {file = "LICENSE"}
 authors = [
     {name = "Mahdi Majd", email = "mahdi.kazemimajd@gmail.com"}
 ]
