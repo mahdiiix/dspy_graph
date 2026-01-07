@@ -10,7 +10,7 @@ import dspy
 import graphviz
 import pydantic
 
-from node import END, Node
+from node import END, Node, create_node
 
 
 class IsDataclass(Protocol):
@@ -22,14 +22,14 @@ class IsDataclass(Protocol):
 class Graph:
     def __init__(
         self,
-        nodes: List[Node],
+        nodes: Optional[List[Node]] = None,
         max_iterations: int = -1,
         freeze: bool = False,
         state: Dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
         context: Dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
     ):
-        self.nodes = nodes
-        self.start_node: Node = nodes[0]
+        self.nodes = nodes if nodes else list(Node.get_nodes().values())
+        self.start_node: Node = self.nodes[0]
         self.max_iterations = max_iterations
         self.freeze = freeze
         self.context = context  # Read-only object
@@ -194,9 +194,10 @@ class CompiledDspy(dspy.Module):
 
 
 if __name__ == "__main__":
-    # Create simple test nodes
+    # Create simple test nodes using decorator
     CHECK = "check"
 
+    @create_node("start")
     def start_node():
         print("Starting...")
         if True:
@@ -204,26 +205,24 @@ if __name__ == "__main__":
         else:
             return "check"
 
+    @create_node("process", llm_freeze=True)
     def process_node():
         print("Processing...")
         return f"{CHECK}"
         return "start"
 
+    @create_node("check", freeze=True)
     def check_node():
         print("Checking...")
         return "END"
 
-    # Create nodes
-    start = Node("start", start_node)
-    process = Node("process", process_node, llm_freeze=True)
-    check = Node("check", check_node, freeze=True)
-
     # Create graph
     test_graph = Graph(
-        nodes=[start, process, check],
+        #nodes=[start_node, process_node, check_node],
         max_iterations=10,
         state={"counter": 0},
     )
+    test_graph.set_start_node(start_node)
 
     # Visualize the graph
     print("Creating graph visualization...")
