@@ -1,14 +1,16 @@
 import asyncio
 import inspect
+import re
 import threading
-from dataclasses import dataclass
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Protocol, Union
 
 import dspy
+import graphviz
 import pydantic
 
-from .node import END, Node
+from node import END, Node
 
 
 class IsDataclass(Protocol):
@@ -76,8 +78,93 @@ class Graph:
     def load(self, path: Path):
         pass
 
-    def visualize(self):
-        pass
+    @staticmethod
+    def _extract_next_nodes(node: Node):
+        next_nodes = []
+        for l in inspect.getsourcelines(node.run)[0]:
+            matches = re.match(r"^\s*return\s+(.+?)(?:\s+#.*)?$", l)
+            if matches:
+                if matches[1] == "END":
+                    next_nodes.append("END")
+                else:
+                    next_nodes.append(eval(matches[1]))
+        return next_nodes
+
+    def _create_mapping_nodes(self) -> defaultdict[Any, list]:
+        # Build visual dictionary mapping nodes to their next nodes
+        mapping = defaultdict(list)
+        for node in self.nodes:
+            if node is END:
+                continue
+            mapping[node.name].extend(self._extract_next_nodes(node))
+        return mapping
+
+    def visualize(
+        self,
+        filepath: Optional[str | Path] = None,
+        format: str = "png",
+        view: bool = False,
+    ):
+        """
+        Visualize the graph structure using graphviz.
+
+        Args:
+            filepath: Output file path (without extension).
+            format: Output format (png, pdf, svg, etc.)
+            view: Whether to open the rendered graph automatically
+        """
+
+        mapping = self._create_mapping_nodes()
+
+        # Create graphviz Digraph
+        dot = graphviz.Digraph(comment="Graph Visualization")
+        dot.attr(rankdir="TB")
+
+        # Add all nodes with styling
+        for node in self.nodes:
+            if node is END:
+                continue
+
+            node_attrs = {
+                "shape": "box",
+                "style": "rounded,filled",
+                "fillcolor": "lightblue",
+            }
+
+            # Highlight start node
+            if node == self.start_node:
+                node_attrs["color"] = "lightgreen"
+                node_attrs["penwidth"] = "3"
+
+            # Mark frozen nodes
+            if node.llm_freeze:
+                node_attrs["fillcolor"] = "lightyellow"
+            if node.freeze or self.freeze:
+                node_attrs["fillcolor"] = "lightgray"
+
+            dot.node(node.name, node.name, **node_attrs)
+
+        # Add END node
+        dot.node("END", "END", shape="box", style="rounded,filled", color="salmon")
+
+        # Add edges from visual dictionary
+        for source_name, targets in mapping.items():
+            for target in targets:
+                dot.edge(source_name, target)
+
+        # Save and/or view
+        if filepath:
+            filepath = Path(filepath)
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+            dot.render(
+                filepath.stem,
+                directory=filepath.parent or ".",
+                format=format,
+                view=view,
+                cleanup=True,
+            )
+
+        print(dot.source)
 
 
 class CompiledDspy(dspy.Module):
@@ -104,3 +191,41 @@ class CompiledDspy(dspy.Module):
             if not isinstance(self.graph.state, dict)
             else self.graph.state.get(self.result_name, None)
         )
+
+
+if __name__ == "__main__":
+    # Create simple test nodes
+    CHECK = "check"
+
+    def start_node():
+        print("Starting...")
+        if True:
+            return "process"
+        else:
+            return "check"
+
+    def process_node():
+        print("Processing...")
+        return f"{CHECK}"
+        return "start"
+
+    def check_node():
+        print("Checking...")
+        return "END"
+
+    # Create nodes
+    start = Node("start", start_node)
+    process = Node("process", process_node, llm_freeze=True)
+    check = Node("check", check_node, freeze=True)
+
+    # Create graph
+    test_graph = Graph(
+        nodes=[start, process, check],
+        max_iterations=10,
+        state={"counter": 0},
+    )
+
+    # Visualize the graph
+    print("Creating graph visualization...")
+    test_graph.visualize("/Users/mahdimajd/test_graph", format="png", view=True)
+    print("Graph visualization saved as test_graph.png")
