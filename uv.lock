@@ -444,9 +444,9 @@ wheels = [
 ]
 
 [[package]]
-name = "graph-dspy"
+name = "dspy-graph"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "dspy" },
     { name = "graphviz" },
