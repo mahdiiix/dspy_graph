@@ -1,10 +1,11 @@
+import weakref
 from typing import Callable, Optional, Self
 
 import dspy
 
 
 class Node:
-    _registry: dict[str, Self] = {}
+    _registry: weakref.WeakValueDictionary[str, "Node"] = weakref.WeakValueDictionary()
 
     @classmethod
     def get_node(cls, name: str) -> Self:
@@ -42,7 +43,12 @@ class Node:
         return self.run(*args, **kwargs)
 
 
-def create_node(name: str, program: Optional[dspy.Module] = None):
+def create_node(
+    name: str,
+    program: Optional[dspy.Module] = None,
+    freeze: Optional[bool] = None,
+    llm_freeze: Optional[bool] = None,
+):
     def decorator(fn: Callable[..., str]):
         return Node(name, fn, program)
 
