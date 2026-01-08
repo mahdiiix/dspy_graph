@@ -1,4 +1,5 @@
 import asyncio
+import orjson
 import inspect
 import re
 import threading
@@ -11,6 +12,7 @@ import graphviz
 import pydantic
 
 from dspy_graph.node import END, Node, create_node
+from dspy_graph.algo_param import AlgoParam
 
 
 class IsDataclass(Protocol):
@@ -71,12 +73,6 @@ class Graph:
         if "tlock" in sig.parameters:
             bound = sig.bind_partial(**bound.arguments, tlock=self.tlock)
         return sig.bind(**bound.arguments)
-
-    def save(self, path: Path):
-        pass
-
-    def load(self, path: Path):
-        pass
 
     @staticmethod
     def _extract_next_nodes(node: Node):
@@ -191,6 +187,38 @@ class CompiledDspy(dspy.Module):
             if not isinstance(self.graph.state, dict)
             else self.graph.state.get(self.result_name, None)
         )
+
+    def save(self, path: Path | str):
+        path = Path(path)
+
+        dspy_state = self.dump_state()
+        dspy_state['metadata'] = dspy.utils.saving.get_dependency_versions()
+
+        algo_state = dict((k, v.value) for k, v in AlgoParam.parameters())
+
+        state = {'dspy_state': dspy_state, 'algo_state': algo_state}
+
+        with open(path, "wb") as f:
+            f.write(orjson.dumps(state, option=orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE))
+
+    def load(self, path: Path | str):
+        path = Path(path)
+        with open(path, "rb") as f:
+            state = orjson.loads(f.read())
+        # dependency_versions = dspy.utils.saving.get_dependency_versions()
+        # saved_dependency_versions = state['dspy_state']["metadata"]["dependency_versions"]
+        # for key, saved_version in saved_dependency_versions.items():
+        #     if dependency_versions[key] != saved_version:
+        #         logger.warning(
+        #             f"There is a mismatch of {key} version between saved model and current environment. "
+        #             f"You saved with `{key}=={saved_version}`, but now you have "
+        #             f"`{key}=={dependency_versions[key]}`. This might cause errors or performance downgrade "
+        #             "on the loaded model, please consider loading the model in the same environment as the "
+        #             "saving environment."
+        #         )
+        self.load_state(state['dspy_state'])
+        for k, v in state['algo_state'].items():
+            AlgoParam.parameter(k).value = v
 
 
 if __name__ == "__main__":
