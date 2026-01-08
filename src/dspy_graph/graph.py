@@ -10,7 +10,7 @@ import dspy
 import graphviz
 import pydantic
 
-from node import END, Node, create_node
+from dspy_graph.node import END, Node, create_node
 
 
 class IsDataclass(Protocol):

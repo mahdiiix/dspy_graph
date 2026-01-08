@@ -3,8 +3,8 @@ from typing import Optional, Protocol, Tuple
 import dspy
 import optuna
 
-from .algo_param import AlgoParam
-from .graph import CompiledDspy
+from dspy_graph.algo_param import AlgoParam
+from dspy_graph.graph import CompiledDspy
 
 
 class Optimizer(Protocol):
