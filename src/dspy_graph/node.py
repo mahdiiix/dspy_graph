@@ -8,7 +8,7 @@ class Node:
     _registry: weakref.WeakValueDictionary[str, "Node"] = weakref.WeakValueDictionary()
 
     @classmethod
-    def get_node(cls, name: str) -> Self:
+    def get_node(cls, name: str) -> "Node":
         try:
             return cls._registry[name]
         except KeyError:
@@ -29,14 +29,12 @@ class Node:
         name: str,
         fn: Callable[..., str],
         program: Optional[dspy.Module] = None,
-        freeze: bool = False,
-        llm_freeze: bool = False,
+        program_freeze: bool = False,
     ):
         self.name = name
         self.llm_program = program
         self.run = fn
-        self.freeze = freeze
-        self.llm_freeze = llm_freeze
+        self.program_freeze = program_freeze
         self._register_node(name, self)
 
     def __call__(self, *args, **kwargs):
@@ -50,12 +48,12 @@ def create_node(
     llm_freeze: bool = False,
 ):
     def decorator(fn: Callable[..., str]):
-        return Node(name, fn, program, freeze, llm_freeze)
+        return Node(name, fn, program, llm_freeze)
 
     return decorator
 
 
-END = Node("END", lambda _: "END", freeze=True)
+END = Node("END", lambda _: "END")
 
 if __name__ == "__main__":
     llm = dspy.Module()

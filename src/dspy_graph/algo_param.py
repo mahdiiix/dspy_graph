@@ -50,7 +50,7 @@ if __name__ == "__main__":
     def f():
         AlgoParam[str](value="hello", name="b")
 
-    f()
+    print(dict((k, v.value) for k, v in AlgoParam.parameters()))
 
-    for item in AlgoParam.parameters():
-        print(item)
+    for k, v in AlgoParam.parameters():
+        print(k, v.value)

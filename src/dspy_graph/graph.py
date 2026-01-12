@@ -133,9 +133,9 @@ class Graph:
                 node_attrs["penwidth"] = "3"
 
             # Mark frozen nodes
-            if node.llm_freeze:
+            if node.program_freeze:
                 node_attrs["fillcolor"] = "lightyellow"
-            if node.freeze or self.freeze:
+            if self.freeze:
                 node_attrs["fillcolor"] = "lightgray"
 
             dot.node(node.name, node.name, **node_attrs)
@@ -174,8 +174,7 @@ class CompiledDspy(dspy.Module):
         if not self.graph.freeze:
             for node in self.graph.nodes:
                 if (
-                    (not node.freeze)
-                    and (not node.llm_freeze)
+                    (not node.program_freeze)
                     and isinstance(node.llm_program, dspy.Module)
                 ):
                     setattr(self, node.name, node.llm_program)

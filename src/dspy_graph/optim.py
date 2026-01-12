@@ -21,7 +21,7 @@ if __name__ == "__main__":
             self.trainset = [dspy.Example(), dspy.Example()]
             self.graph = graph
             self.evaluate = dspy.Evaluate(devset=self.trainset)
-            self.best_optimized_graph: Optional[CompiledDspy] = None
+            self.best_optimized_graph: CompiledDspy = graph
 
         def objective(self, trial: optuna.trial.Trial):
             AlgoParam.parameter("a").value = trial.suggest_int("a", 1, 10)
