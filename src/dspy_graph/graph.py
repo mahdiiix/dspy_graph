@@ -53,6 +53,8 @@ class Graph:
         while current_node is not END:
             bound = self._inject_params(current_node)
             current_node = Node.get_node(current_node(**bound.arguments))
+            if current_node not in self.nodes:
+                raise ValueError(f"Node {current_node} not found in graph")
             iteration += 1
             self._check_max_iteration(iteration)
 
@@ -69,6 +71,8 @@ class Graph:
         while current_node is not END:
             bound = self._inject_params(current_node)
             current_node = Node.get_node(await current_node(**bound.arguments))
+            if current_node not in self.nodes:
+                raise ValueError(f"Node {current_node} not found in graph")
             iteration += 1
             self._check_max_iteration(iteration)
 
