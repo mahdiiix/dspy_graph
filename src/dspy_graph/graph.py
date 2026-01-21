@@ -49,18 +49,36 @@ class Graph:
         self.state = state or self.state
         self.context = context or self.context
         current_node = self.start_node
-        iterations = 0
-        while current_node is not END and iterations != self.max_iterations:
+        iteration = 0
+        while current_node is not END:
             bound = self._inject_params(current_node)
             current_node = Node.get_node(current_node(**bound.arguments))
-            iterations += 1
+            iteration += 1
+            self._check_max_iteration(iteration)
 
-        if 0 <= self.max_iterations <= iterations:
+        return self.state
+
+    async def acall(self,
+                    state: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
+                    context: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
+                    ):
+        self.state = state or self.state
+        self.context = context or self.context
+        current_node = self.start_node
+        iteration = 0
+        while current_node is not END:
+            bound = self._inject_params(current_node)
+            current_node = Node.get_node(await current_node(**bound.arguments))
+            iteration += 1
+            self._check_max_iteration(iteration)
+
+        return self.state
+
+    def _check_max_iteration(self, iteration: int):
+        if 0 < self.max_iterations <= iteration:
             raise RuntimeError(
                 f"Graph execution exceeded max iterations ({self.max_iterations})"
             )
-
-        return self.state
 
     def _inject_params(self, current_node: Node) -> inspect.BoundArguments:
         sig = inspect.signature(current_node.run)
