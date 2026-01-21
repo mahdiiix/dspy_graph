@@ -47,7 +47,7 @@ def create_node(
     freeze: bool = False,
     llm_freeze: bool = False,
 ):
-    def decorator(fn: Callable[..., str]):
+    def decorator(fn: Callable[..., str]) -> Node:
         return Node(name, fn, program, llm_freeze)
 
     return decorator

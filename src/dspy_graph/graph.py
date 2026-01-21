@@ -31,7 +31,7 @@ class Graph:
         context: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
     ):
         self.nodes = nodes if nodes else list(Node.get_nodes().values())
-        self.start_node: Node = self.nodes[0]
+        self.start_node: Node = self.nodes[1]
         self.max_iterations = max_iterations
         self.freeze = freeze
         self.context = context  # Read-only object
