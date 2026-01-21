@@ -5,7 +5,7 @@ import re
 import threading
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Optional, Protocol, Union
+from typing import Any, ClassVar, Optional, Protocol, Union
 
 import dspy
 import graphviz
@@ -18,17 +18,17 @@ from dspy_graph.algo_param import AlgoParam
 class IsDataclass(Protocol):
     # Checking for this attribute is currently the most reliable way
     # to ascertain that something is a dataclass
-    __dataclass_fields__: ClassVar[Dict[str, Any]]
+    __dataclass_fields__: ClassVar[dict[str, Any]]
 
 
 class Graph:
     def __init__(
         self,
-        nodes: Optional[List[Node]] = None,
+        nodes: Optional[list[Node]] = None,
         max_iterations: int = -1,
         freeze: bool = False,
-        state: Dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
-        context: Dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
+        state: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
+        context: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
     ):
         self.nodes = nodes if nodes else list(Node.get_nodes().values())
         self.start_node: Node = self.nodes[0]
@@ -162,6 +162,21 @@ class Graph:
 
         print(dot.source)
 
+    def available_llm_programs(self) -> list[Node]:
+       return [node for node in self.nodes if (node.llm_program and (not node.program_freeze))]
+
+    def available_algo_params(self) -> list[AlgoParam]:
+        return {k: v for k, v in AlgoParam.parameters() if not v.freeze}
+
+    def freeze_algo_params(self, names: list[str]):
+        pass
+    def unfreeze_algo_params(self, names: list[str]):
+        pass
+    def freeze_llm_programs(self, names: list[str]):
+        pass
+    def unfreeze_llm_programs(self, names: list[str]):
+        pass
+
 
 class CompiledDspy(dspy.Module):
     def __init__(self, graph: Graph, result_name: str = "result"):
@@ -172,12 +187,8 @@ class CompiledDspy(dspy.Module):
 
     def _register_modules(self):
         if not self.graph.freeze:
-            for node in self.graph.nodes:
-                if (
-                    (not node.program_freeze)
-                    and isinstance(node.llm_program, dspy.Module)
-                ):
-                    setattr(self, node.name, node.llm_program)
+            for node in self.graph.available_llm_programs():
+                setattr(self, node.name, node.llm_program)
 
     def forward(self) -> Optional[dspy.Prediction]:
         self.graph()
@@ -218,6 +229,9 @@ class CompiledDspy(dspy.Module):
         self.load_state(state['dspy_state'])
         for k, v in state['algo_state'].items():
             AlgoParam.parameter(k).value = v
+
+    def reload(self, new_graph: Graph):
+        self.__init__(new_graph, self.result_name)
 
 
 if __name__ == "__main__":
