@@ -42,7 +42,12 @@ class Graph:
     def set_start_node(self, node: Node):
         self.start_node = node
 
-    def __call__(self):  # TODO: Node can return a list of noded too
+    def __call__(self,
+                 state: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
+                 context: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
+                 ):  # TODO: Node can return a list of noded too
+        self.state = state or self.state
+        self.context = context or self.context
         current_node = self.start_node
         iterations = 0
         while current_node is not END and iterations != self.max_iterations:
