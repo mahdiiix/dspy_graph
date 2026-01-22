@@ -28,11 +28,11 @@ class Node:
         self,
         name: str,
         fn: Callable[..., str],
-        program: Optional[dspy.Module] = None,
         program_freeze: bool = False,
+        programs: Optional[dict[str, dspy.Module]] = None,
     ):
         self.name = name
-        self.llm_program = program
+        self.llm_programs = programs if programs else {}
         self.run = fn
         self.program_freeze = program_freeze
         self._register_node(name, self)
@@ -43,12 +43,12 @@ class Node:
 
 def create_node(
     name: str,
-    program: Optional[dspy.Module] = None,
     freeze: bool = False,
     llm_freeze: bool = False,
+    **kwargs,
 ):
     def decorator(fn: Callable[..., str]) -> Node:
-        return Node(name, fn, program, llm_freeze)
+        return Node(name=name, fn=fn, program_freeze=llm_freeze, programs=kwargs)
 
     return decorator
 

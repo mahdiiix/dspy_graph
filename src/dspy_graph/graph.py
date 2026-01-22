@@ -69,10 +69,10 @@ class Graph:
         current_node = self.start_node
         iteration = 0
         while current_node is not END:
-            bound = self._inject_params(current_node)
-            current_node = Node.get_node(await current_node(**bound.arguments))
             if current_node not in self.nodes:
                 raise ValueError(f"Node {current_node} not found in graph")
+            bound = self._inject_params(current_node)
+            current_node = Node.get_node(await current_node(**bound.arguments))
             iteration += 1
             self._check_max_iteration(iteration)
 
@@ -87,18 +87,18 @@ class Graph:
     def _inject_params(self, current_node: Node) -> inspect.BoundArguments:
         sig = inspect.signature(current_node.run)
         bound = sig.bind_partial()
-        if "state" in sig.parameters:
-            bound = sig.bind_partial(**bound.arguments, state=self.state)
-        if "ctx" in sig.parameters:
-            bound = sig.bind_partial(**bound.arguments, ctx=self.context)
-        if "llm_program" in sig.parameters:
-            bound = sig.bind_partial(
-                **bound.arguments, llm_program=current_node.llm_program
-            )
-        if "alock" in sig.parameters:
-            bound = sig.bind_partial(**bound.arguments, alock=self.alock)
-        if "tlock" in sig.parameters:
-            bound = sig.bind_partial(**bound.arguments, tlock=self.tlock)
+        for param in sig.parameters:
+            match param:
+               case "state":
+                   bound = sig.bind_partial(**bound.arguments, state=self.state)
+               case "ctx":
+                   bound = sig.bind_partial(**bound.arguments, ctx=self.context)
+               case "alock":
+                   bound = sig.bind_partial(**bound.arguments, alock=self.alock)
+               case "tlock":
+                   bound = sig.bind_partial(**bound.arguments, tlock=self.tlock)
+               case _:
+                   bound = sig.bind_partial(**bound.arguments, param=current_node.llm_programs[param])
         return sig.bind(**bound.arguments)
 
     @staticmethod
@@ -190,7 +190,7 @@ class Graph:
         print(dot.source)
 
     def available_llm_programs(self) -> list[Node]:
-       return [node for node in self.nodes if (node.llm_program and (not node.program_freeze))]
+       return [node for node in self.nodes if (node.llm_programs and (not node.program_freeze))]
 
     def available_algo_params(self) -> list[AlgoParam]:
         return {k: v for k, v in AlgoParam.parameters() if not v.freeze}
@@ -215,7 +215,8 @@ class CompiledDspy(dspy.Module):
     def _register_modules(self):
         if not self.graph.freeze:
             for node in self.graph.available_llm_programs():
-                setattr(self, node.name, node.llm_program)
+                for field, prog in node.llm_programs.items():
+                   setattr(self, f"{node.name}_{field}", prog)
 
     def forward(self) -> Optional[dspy.Prediction]:
         self.graph()
