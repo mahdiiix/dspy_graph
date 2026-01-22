@@ -1,5 +1,4 @@
 import asyncio
-import orjson
 import inspect
 import re
 import threading
@@ -9,10 +8,11 @@ from typing import Any, ClassVar, Optional, Protocol, Union
 
 import dspy
 import graphviz
+import orjson
 import pydantic
 
-from dspy_graph.node import END, Node, create_node
 from dspy_graph.algo_param import AlgoParam
+from dspy_graph.node import END, Node, create_node
 
 
 class IsDataclass(Protocol):
@@ -42,10 +42,11 @@ class Graph:
     def set_start_node(self, node: Node):
         self.start_node = node
 
-    def __call__(self,
-                 state: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
-                 context: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
-                 ):  # TODO: Node can return a list of noded too
+    def __call__(
+        self,
+        state: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
+        context: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
+    ):  # TODO: Node can return a list of noded too
         self.state = state or self.state
         self.context = context or self.context
         current_node = self.start_node
@@ -60,10 +61,11 @@ class Graph:
 
         return self.state
 
-    async def acall(self,
-                    state: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
-                    context: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
-                    ):
+    async def acall(
+        self,
+        state: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
+        context: dict[Any, Any] | pydantic.BaseModel | IsDataclass | None = None,
+    ):
         self.state = state or self.state
         self.context = context or self.context
         current_node = self.start_node
@@ -89,16 +91,18 @@ class Graph:
         bound = sig.bind_partial()
         for param in sig.parameters:
             match param:
-               case "state":
-                   bound = sig.bind_partial(**bound.arguments, state=self.state)
-               case "ctx":
-                   bound = sig.bind_partial(**bound.arguments, ctx=self.context)
-               case "alock":
-                   bound = sig.bind_partial(**bound.arguments, alock=self.alock)
-               case "tlock":
-                   bound = sig.bind_partial(**bound.arguments, tlock=self.tlock)
-               case _:
-                   bound = sig.bind_partial(**bound.arguments, **{param: current_node.llm_programs[param]})
+                case "state":
+                    bound = sig.bind_partial(**bound.arguments, state=self.state)
+                case "ctx":
+                    bound = sig.bind_partial(**bound.arguments, ctx=self.context)
+                case "alock":
+                    bound = sig.bind_partial(**bound.arguments, alock=self.alock)
+                case "tlock":
+                    bound = sig.bind_partial(**bound.arguments, tlock=self.tlock)
+                case _:
+                    bound = sig.bind_partial(
+                        **bound.arguments, **{param: current_node.llm_programs[param]}
+                    )
         return sig.bind(**bound.arguments)
 
     @staticmethod
@@ -190,17 +194,24 @@ class Graph:
         print(dot.source)
 
     def available_llm_programs(self) -> list[Node]:
-       return [node for node in self.nodes if (node.llm_programs and (not node.program_freeze))]
+        return [
+            node
+            for node in self.nodes
+            if (node.llm_programs and (not node.program_freeze))
+        ]
 
     def available_algo_params(self) -> list[AlgoParam]:
         return {k: v for k, v in AlgoParam.parameters() if not v.freeze}
 
     def freeze_algo_params(self, names: list[str]):
         pass
+
     def unfreeze_algo_params(self, names: list[str]):
         pass
+
     def freeze_llm_programs(self, names: list[str]):
         pass
+
     def unfreeze_llm_programs(self, names: list[str]):
         pass
 
@@ -216,7 +227,7 @@ class CompiledDspy(dspy.Module):
         if not self.graph.freeze:
             for node in self.graph.available_llm_programs():
                 for field, prog in node.llm_programs.items():
-                   setattr(self, f"{node.name}_{field}", prog)
+                    setattr(self, f"{node.name}_{field}", prog)
 
     def forward(self, *args, **kwargs) -> Optional[dspy.Prediction]:
         self.graph(*args, **kwargs)
@@ -238,50 +249,68 @@ class CompiledDspy(dspy.Module):
         path = Path(path)
 
         dspy_state = self.dump_state()
-        dspy_state['metadata'] = dspy.utils.saving.get_dependency_versions()
+        dspy_state["metadata"] = dspy.utils.saving.get_dependency_versions()
 
         algo_state = dict((k, v.value) for k, v in AlgoParam.parameters())
 
-        state = {'dspy_state': dspy_state, 'algo_state': algo_state}
+        state = {"dspy_state": dspy_state, "algo_state": algo_state}
 
         with open(path, "wb") as f:
-            f.write(orjson.dumps(state, option=orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE))
+            f.write(
+                orjson.dumps(
+                    state, option=orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE
+                )
+            )
 
     def load(self, path: Path | str):
         path = Path(path)
         with open(path, "rb") as f:
             state = orjson.loads(f.read())
         # dependency_versions = dspy.utils.saving.get_dependency_versions()
-        # saved_dependency_versions = state['dspy_state']["metadata"]["dependency_versions"]
+        # saved_dependency_versions = state['dspy_state']["metadata"]
+        # ["dependency_versions"]
         # for key, saved_version in saved_dependency_versions.items():
         #     if dependency_versions[key] != saved_version:
         #         logger.warning(
-        #             f"There is a mismatch of {key} version between saved model and current environment. "
+        #             f"There is a mismatch of {key} version between saved
+        #             model and current environment. "
         #             f"You saved with `{key}=={saved_version}`, but now you have "
-        #             f"`{key}=={dependency_versions[key]}`. This might cause errors or performance downgrade "
-        #             "on the loaded model, please consider loading the model in the same environment as the "
+        #             f"`{key}=={dependency_versions[key]}`. This might cause errors
+        #             or performance downgrade "
+        #             "on the loaded model, please consider loading the model in the
+        #             same environment as the "
         #             "saving environment."
         #         )
-        self.load_state(state['dspy_state'])
-        for k, v in state['algo_state'].items():
+        self.load_state(state["dspy_state"])
+        for k, v in state["algo_state"].items():
             AlgoParam.parameter(k).value = v
 
     def reload(self, new_graph: Graph):
         self.__init__(new_graph, self.result_name)
 
-    def make_stream(self, fields: list[str], status_message_provider: dspy.streaming.StatusMessageProvider, allow_reuse: Optional[list[str]] = None):
+    def make_stream(
+        self,
+        fields: list[str],
+        status_message_provider: Optional[dspy.streaming.StatusMessageProvider] = None,
+        allow_reuse: Optional[list[str]] = None,
+    ):
         allow_reuse = allow_reuse or []
         stream_listeners = []
         for field in fields:
             mod_name, field_name = field.split(".")
-            stream_listeners.append(dspy.streaming.StreamListener(signature_field_name=field_name,
-                                                                  predict=getattr(self, mod_name),
-                                                                 predict_name=mod_name,
-                                                                 allow_reuse=True if field in allow_reuse else False,
-                                                                  ))
-        return dspy.streamify(self,
-                              stream_listeners=stream_listeners,
-                              status_message_provider=status_message_provider)
+            stream_listeners.append(
+                dspy.streaming.StreamListener(
+                    signature_field_name=field_name,
+                    predict=getattr(self, mod_name),
+                    predict_name=mod_name,
+                    allow_reuse=True if field in allow_reuse else False,
+                )
+            )
+        return dspy.streamify(
+            self,
+            stream_listeners=stream_listeners,
+            status_message_provider=status_message_provider,
+        )
 
 
 if __name__ == "__main__":
@@ -309,7 +338,7 @@ if __name__ == "__main__":
 
     # Create graph
     test_graph = Graph(
-        #nodes=[start_node, process_node, check_node],
+        # nodes=[start_node, process_node, check_node],
         max_iterations=10,
         state={"counter": 0},
     )
