@@ -218,8 +218,16 @@ class CompiledDspy(dspy.Module):
                 for field, prog in node.llm_programs.items():
                    setattr(self, f"{node.name}_{field}", prog)
 
-    def forward(self) -> Optional[dspy.Prediction]:
-        self.graph()
+    def forward(self, *args, **kwargs) -> Optional[dspy.Prediction]:
+        self.graph(*args, **kwargs)
+        return (
+            getattr(self.graph.state, self.result_name, None)
+            if not isinstance(self.graph.state, dict)
+            else self.graph.state.get(self.result_name, None)
+        )
+
+    async def aforward(self, *args, **kwargs) -> Optional[dspy.Prediction]:
+        await self.graph.acall(*args, **kwargs)
         return (
             getattr(self.graph.state, self.result_name, None)
             if not isinstance(self.graph.state, dict)
@@ -260,6 +268,20 @@ class CompiledDspy(dspy.Module):
 
     def reload(self, new_graph: Graph):
         self.__init__(new_graph, self.result_name)
+
+    def make_stream(self, fields: list[str], status_message_provider: dspy.streaming.StatusMessageProvider, allow_reuse: Optional[list[str]] = None):
+        allow_reuse = allow_reuse or []
+        stream_listeners = []
+        for field in fields:
+            mod_name, field_name = field.split(".")
+            stream_listeners.append(dspy.streaming.StreamListener(signature_field_name=field_name,
+                                                                  predict=getattr(self, mod_name),
+                                                                 predict_name=mod_name,
+                                                                 allow_reuse=True if field in allow_reuse else False,
+                                                                  ))
+        return dspy.streamify(self,
+                              stream_listeners=stream_listeners,
+                              status_message_provider=status_message_provider)
 
 
 if __name__ == "__main__":
