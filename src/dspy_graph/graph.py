@@ -98,7 +98,7 @@ class Graph:
                case "tlock":
                    bound = sig.bind_partial(**bound.arguments, tlock=self.tlock)
                case _:
-                   bound = sig.bind_partial(**bound.arguments, param=current_node.llm_programs[param])
+                   bound = sig.bind_partial(**bound.arguments, **{param: current_node.llm_programs[param]})
         return sig.bind(**bound.arguments)
 
     @staticmethod
