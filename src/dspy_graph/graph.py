@@ -301,8 +301,9 @@ class CompiledDspy(dspy.Module):
             stream_listeners.append(
                 dspy.streaming.StreamListener(
                     signature_field_name=field_name,
-                    predict=getattr(self, mod_name),
-                    predict_name=mod_name,
+                    # TODO: Should suppport duplicate names
+                    # predict=getattr(self, mod_name),
+                    # predict_name=mod_name,
                     allow_reuse=True if field in allow_reuse else False,
                 )
             )
@@ -311,40 +312,3 @@ class CompiledDspy(dspy.Module):
             stream_listeners=stream_listeners,
             status_message_provider=status_message_provider,
         )
-
-
-if __name__ == "__main__":
-    # Create simple test nodes using decorator
-    CHECK = "check"
-
-    @create_node("start")
-    def start_node():
-        print("Starting...")
-        if True:
-            return "process"
-        else:
-            return "check"
-
-    @create_node("process", llm_freeze=True)
-    def process_node():
-        print("Processing...")
-        return f"{CHECK}"
-        return "start"
-
-    @create_node("check", freeze=True)
-    def check_node():
-        print("Checking...")
-        return "END"
-
-    # Create graph
-    test_graph = Graph(
-        # nodes=[start_node, process_node, check_node],
-        max_iterations=10,
-        state={"counter": 0},
-    )
-    test_graph.set_start_node(start_node)
-
-    # Visualize the graph
-    print("Creating graph visualization...")
-    test_graph.visualize("/Users/mahdimajd/test_graph", format="png", view=True)
-    print("Graph visualization saved as test_graph.png")
