@@ -293,7 +293,10 @@ class CompiledDspy(dspy.Module):
         fields: list[str],
         status_message_provider: Optional[dspy.streaming.StatusMessageProvider] = None,
         allow_reuse: Optional[list[str]] = None,
-    ):
+        include_final_prediction_in_output_stream: bool = True,
+        is_async_program: bool = False,
+        async_streaming: bool = True,
+    ) -> Callable[[Any, Any], Awaitable[Any]]:
         allow_reuse = allow_reuse or []
         stream_listeners = []
         for field in fields:
@@ -311,4 +314,7 @@ class CompiledDspy(dspy.Module):
             self,
             stream_listeners=stream_listeners,
             status_message_provider=status_message_provider,
+            include_final_prediction_in_output_stream=include_final_prediction_in_output_stream,
+            is_async_program=is_async_program,
+            async_streaming=async_streaming,
         )
