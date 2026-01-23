@@ -4,7 +4,7 @@ import re
 import threading
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, ClassVar, Optional, Protocol, Union
+from typing import Any, Awaitable, Callable, ClassVar, Optional, Protocol, Union
 
 import dspy
 import graphviz
